@@ -9,7 +9,7 @@
         @fonts
         @vite(['resources/css/app.css', 'resources/js/app.js'])
     </head>
-    <body class="min-h-screen bg-zinc-100 font-sans text-zinc-800 antialiased">
+    <body class="min-h-screen bg-zinc-300 font-sans text-zinc-800 antialiased">
         <div class="flex min-h-screen">
             <aside class="hidden w-64 shrink-0 flex-col bg-zinc-950 text-zinc-300 lg:flex">
                 <div class="flex items-center gap-3 px-6 py-6">

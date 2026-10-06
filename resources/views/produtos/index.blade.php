@@ -16,7 +16,7 @@
 
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                <thead class="bg-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
                     <tr>
                         <th class="px-6 py-3 font-medium">Produto</th>
                         <th class="px-6 py-3 font-medium">Preço</th>
@@ -27,7 +27,7 @@
                 </thead>
                 <tbody class="divide-y divide-zinc-100">
                     @forelse ($produtos as $produto)
-                        <tr class="transition hover:bg-zinc-50/80">
+                        <tr class="transition hover:bg-zinc-200/60">
                             <td class="px-6 py-4">
                                 <a href="{{ route('produtos.show', $produto) }}" class="font-medium text-zinc-900 hover:text-emerald-700">{{ $produto->nome }}</a>
                                 <p class="max-w-md truncate text-xs text-zinc-500">{{ $produto->descricao }}</p>

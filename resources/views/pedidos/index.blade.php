@@ -26,7 +26,7 @@
     <x-card>
         <div class="overflow-x-auto">
             <table class="w-full text-left text-sm">
-                <thead class="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                <thead class="bg-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
                     <tr>
                         <th class="px-6 py-3 font-medium">Pedido</th>
                         <th class="px-6 py-3 font-medium">Status</th>
@@ -38,7 +38,7 @@
                 </thead>
                 <tbody class="divide-y divide-zinc-100">
                     @forelse ($pedidos as $pedido)
-                        <tr class="transition hover:bg-zinc-50/80">
+                        <tr class="transition hover:bg-zinc-200/60">
                             <td class="px-6 py-4">
                                 <a href="{{ route('pedidos.show', $pedido) }}" class="font-semibold text-zinc-900 hover:text-emerald-700">#{{ str_pad($pedido->id, 5, '0', STR_PAD_LEFT) }}</a>
                             </td>

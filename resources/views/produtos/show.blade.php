@@ -18,7 +18,7 @@
             @else
                 <dl class="mt-3 grid gap-3 sm:grid-cols-2">
                     @foreach ($produto->atributos as $chave => $valor)
-                        <div class="rounded-xl bg-zinc-50 px-4 py-3 ring-1 ring-zinc-200">
+                        <div class="rounded-xl bg-zinc-200/60 px-4 py-3 ring-1 ring-zinc-300">
                             <dt class="text-xs uppercase tracking-wide text-zinc-500">{{ str_replace('_', ' ', $chave) }}</dt>
                             <dd class="mt-1 text-sm font-medium text-zinc-800">
                                 @if (is_bool($valor))

@@ -27,7 +27,7 @@
     </x-field>
 </div>
 
-<div class="flex justify-end gap-2 border-t border-zinc-200 bg-zinc-50/60 px-6 py-4">
+<div class="flex justify-end gap-2 border-t border-zinc-300 bg-zinc-200/60 px-6 py-4">
     <x-button variant="secondary" :href="$produto->exists ? route('produtos.show', $produto) : route('produtos.index')">Cancelar</x-button>
     <x-button>Salvar produto</x-button>
 </div>

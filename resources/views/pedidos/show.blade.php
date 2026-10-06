@@ -10,7 +10,7 @@
     <div class="grid gap-6 lg:grid-cols-3">
         <x-card class="overflow-hidden lg:col-span-2">
             <table class="w-full text-left text-sm">
-                <thead class="bg-zinc-50 text-xs uppercase tracking-wide text-zinc-500">
+                <thead class="bg-zinc-200 text-xs uppercase tracking-wide text-zinc-500">
                     <tr>
                         <th class="px-6 py-3 font-medium">Produto</th>
                         <th class="px-6 py-3 text-right font-medium">Qtd.</th>
