@@ -18,6 +18,23 @@
 name: pedidos
 
 services:
+  # Proxy reverso: única porta de entrada (80). Configuração em docker/traefik/;
+  # as rotas de cada serviço vêm dos labels abaixo (lidos pelo docker.sock):
+  #   /            -> app          /pgadmin   -> pgadmin
+  #   /portainer/  -> portainer    /vite      -> vite (assets e hot reload)
+  #   /dashboard/  -> painel do próprio Traefik
+  traefik:
+    image: traefik:v3
+    restart: unless-stopped
+    ports:
+      - "80:80"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      # Bind mount da pasta (não só do arquivo): o Traefik detecta na hora as
+      # alterações em docker/traefik/dynamic/. O traefik.yaml é a configuração
+      # estática e só é relido com "docker compose restart traefik".
+      - ./docker/traefik:/etc/traefik:ro
+
   # Banco de dados PostgreSQL. Os dados ficam no volume nomeado "pgdata".
   postgres:
     image: postgres:17-alpine
@@ -50,17 +67,22 @@ services:
       postgres:
         condition: service_healthy
     environment:
-      APP_URL: http://localhost:8000
+      APP_URL: http://localhost
       DB_CONNECTION: pgsql
       DB_HOST: postgres
       DB_PORT: 5432
       DB_DATABASE: pedidos
       DB_USERNAME: laravel
       DB_PASSWORD: secret
-    ports:
-      - "8000:80"
+    # Sem "ports": o acesso é só pelo Traefik, em http://localhost/.
     volumes:
       - ./:/var/www/html
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.app.rule=PathPrefix(`/`)
+      - traefik.http.routers.app.entrypoints=web
+      - traefik.http.routers.app.middlewares=rate-limit@file
+      - traefik.http.services.app.loadbalancer.server.port=80
 
   # Servidor de desenvolvimento do Vite (CSS/JS com hot reload no navegador).
   vite:
@@ -72,10 +94,20 @@ services:
       DOCKER: "true"
       HOME: /tmp
     command: sh -c "[ -d node_modules ] || npm install; npm run dev"
-    ports:
-      - "5173:5173"
+    # Acessado pelo Traefik em /vite (veja "base" no vite.config.js).
     volumes:
       - ./:/var/www/html
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.vite.rule=PathPrefix(`/vite`)
+      - traefik.http.routers.vite.entrypoints=web
+      # Sem rate-limit: em dev o Vite serve dezenas de módulos por página.
+      - traefik.http.routers.vite.middlewares=vite-fonts
+      # O plugin do Laravel serve as fontes fora do "base" (/vite), então
+      # reescrevemos /vite/__laravel_vite_plugin__/... para /__laravel_vite_plugin__/...
+      - traefik.http.middlewares.vite-fonts.replacepathregex.regex=^/vite(/__laravel_vite_plugin__/.*)
+      - traefik.http.middlewares.vite-fonts.replacepathregex.replacement=$$1
+      - traefik.http.services.vite.loadbalancer.server.port=5173
 
   # Interface web do PostgreSQL, já com o servidor "Pedidos (Docker)" cadastrado.
   pgadmin:
@@ -94,22 +126,37 @@ services:
       /bin/sh -c "printf 'postgres:5432:*:laravel:secret\n' > /tmp/pgpass
       && chmod 600 /tmp/pgpass
       && exec /entrypoint.sh"
-    ports:
-      - "5050:80"
     volumes:
       - pgadmin_data:/var/lib/pgadmin
       - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.pgadmin.rule=PathPrefix(`/pgadmin`)
+      - traefik.http.routers.pgadmin.entrypoints=web
+      - traefik.http.routers.pgadmin.middlewares=pgadmin-path,rate-limit@file
+      # Informa ao pgAdmin que ele está em /pgadmin, para gerar os links certos.
+      - traefik.http.middlewares.pgadmin-path.headers.customRequestHeaders.X-Script-Name=/pgadmin
+      - traefik.http.services.pgadmin.loadbalancer.server.port=80
 
   # Painel para gerenciar containers, imagens, volumes e redes.
   portainer:
     image: portainer/portainer-ce:lts
     restart: unless-stopped
-    ports:
-      - "9000:9000"
-      - "9443:9443"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
       - portainer_data:/data
+    labels:
+      - traefik.enable=true
+      - traefik.http.routers.portainer.rule=PathPrefix(`/portainer`)
+      - traefik.http.routers.portainer.entrypoints=web
+      - traefik.http.routers.portainer.middlewares=portainer-slash,portainer-strip,rate-limit@file
+      # /portainer -> /portainer/ (o front do Portainer usa caminhos relativos).
+      # "$$" escapa o "$" para o Compose não tratar como variável.
+      - traefik.http.middlewares.portainer-slash.redirectregex.regex=^(https?://[^/]+/portainer)$$
+      - traefik.http.middlewares.portainer-slash.redirectregex.replacement=$${1}/
+      # Remove o /portainer antes de repassar: o Portainer espera estar na raiz.
+      - traefik.http.middlewares.portainer-strip.stripprefix.prefixes=/portainer
+      - traefik.http.services.portainer.loadbalancer.server.port=9000
 
 volumes:
   pgdata:
