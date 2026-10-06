@@ -1,3 +1,20 @@
+# ATENÇÃO — boas práticas
+# Este arquivo foi feito para uma apresentação, por isso as credenciais e
+# configurações (senhas do banco, usuário do pgAdmin, portas etc.) estão
+# escritas diretamente aqui para facilitar a leitura.
+#
+# Em um projeto real isso NÃO deve ser feito: segredos não devem ir para o
+# controle de versão. O correto é colocar os valores no arquivo .env (que fica
+# fora do Git) e referenciá-los aqui com interpolação, por exemplo:
+#
+#   environment:
+#     POSTGRES_PASSWORD: ${DB_PASSWORD}
+#
+# O Docker Compose lê automaticamente o .env da mesma pasta do compose.yaml.
+# Também é possível usar "env_file: .env" no serviço ou, para dados sensíveis
+# em produção, "secrets". Mantenha um .env.example versionado, sem os valores
+# reais, documentando quais variáveis são necessárias.
+
 name: pedidos
 
 services:
