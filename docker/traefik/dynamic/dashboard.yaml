@@ -1,0 +1,13 @@
+# Rota do painel do Traefik (http://localhost/dashboard/).
+# O painel também usa /api, então essa rota não pode existir no Laravel
+# enquanto o painel estiver exposto.
+
+http:
+  routers:
+    dashboard:
+      rule: "PathPrefix(`/dashboard`) || PathPrefix(`/api`)"
+      entryPoints:
+        - web
+      service: api@internal
+      middlewares:
+        - rate-limit

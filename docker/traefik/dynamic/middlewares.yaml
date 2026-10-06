@@ -1,0 +1,25 @@
+# Configuração DINÂMICA: recarregada automaticamente ao salvar o arquivo.
+# Nos labels do compose.yaml estes middlewares são usados com o sufixo @file
+# (ex.: rate-limit@file), indicando que vêm deste provider.
+
+http:
+  middlewares:
+    # Cabeçalhos de segurança em toda resposta.
+    # CSP e HSTS ficaram de fora: quebrariam o Vite/pgAdmin e não há HTTPS aqui.
+    security-headers:
+      headers:
+        customFrameOptionsValue: SAMEORIGIN
+        contentTypeNosniff: true
+        referrerPolicy: strict-origin-when-cross-origin
+        permissionsPolicy: "camera=(), microphone=(), geolocation=()"
+        # Valor vazio remove o cabeçalho (esconde a versão do PHP/Apache).
+        customResponseHeaders:
+          X-Powered-By: ""
+          Server: ""
+
+    # Média de 50 req/s por IP, com picos de até 100.
+    # Acima disso o Traefik responde 429 Too Many Requests.
+    rate-limit:
+      rateLimit:
+        average: 50
+        burst: 100

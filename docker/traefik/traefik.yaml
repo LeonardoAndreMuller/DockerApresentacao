@@ -1,0 +1,31 @@
+# Configuração ESTÁTICA do Traefik.
+# É lida só quando o container inicia: depois de alterar este arquivo rode
+#   docker compose restart traefik
+# Middlewares e rotas ficam em dynamic/, que recarrega sozinho ao salvar.
+
+entryPoints:
+  web:
+    address: ":80"
+    http:
+      # Headers de segurança aplicados a todas as rotas da porta 80.
+      middlewares:
+        - security-headers@file
+
+providers:
+  # Lê os labels dos containers pelo docker.sock e cria as rotas de cada serviço.
+  docker:
+    # Só entra no proxy quem tiver o label traefik.enable=true.
+    exposedByDefault: false
+
+  # Lê a configuração dinâmica (middlewares, rota do painel) desta pasta e
+  # recarrega a cada alteração, sem reiniciar o container.
+  file:
+    directory: /etc/traefik/dynamic
+    watch: true
+
+# Painel em http://localhost/dashboard/ (rota definida em dynamic/dashboard.yaml).
+api:
+  dashboard: true
+
+# Uma linha por requisição no "docker compose logs traefik".
+accessLog: {}
