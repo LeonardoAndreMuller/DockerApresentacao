@@ -2,7 +2,7 @@
 
 namespace Database\Seeders;
 
-use App\Models\User;
+use App\Models\Produto;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 
@@ -12,14 +12,20 @@ class DatabaseSeeder extends Seeder
 
     /**
      * Seed the application's database.
+     *
+     * Skips when data already exists, so the Docker entrypoint can run it on every start.
      */
     public function run(): void
     {
-        // User::factory(10)->create();
+        if (Produto::query()->exists()) {
+            $this->command?->info('Banco já populado, seed ignorado.');
 
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+            return;
+        }
+
+        $this->call([
+            ProdutoSeeder::class,
+            PedidoSeeder::class,
         ]);
     }
 }

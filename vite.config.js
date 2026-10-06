@@ -3,6 +3,8 @@ import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
 import tailwindcss from '@tailwindcss/vite';
 
+const inDocker = process.env.DOCKER === 'true';
+
 export default defineConfig({
     plugins: [
         laravel({
@@ -17,8 +19,16 @@ export default defineConfig({
         tailwindcss(),
     ],
     server: {
+        ...(inDocker && {
+            host: '0.0.0.0',
+            port: 5173,
+            strictPort: true,
+            origin: 'http://localhost:5173',
+            hmr: { host: 'localhost' },
+        }),
         watch: {
             ignored: ['**/storage/framework/views/**'],
+            usePolling: inDocker,
         },
     },
 });

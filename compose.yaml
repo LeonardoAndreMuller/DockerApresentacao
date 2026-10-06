@@ -1,0 +1,84 @@
+name: pedidos
+
+services:
+  # Banco de dados PostgreSQL. Os dados ficam no volume nomeado "pgdata".
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: pedidos
+      POSTGRES_USER: laravel
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laravel -d pedidos"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  # Aplicação Laravel (php artisan serve + Vite).
+  # O código do host é montado em /var/www/html: editou, refletiu.
+  app:
+    build: .
+    image: pedidos-app:dev
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DOCKER: "true"
+      APP_URL: http://localhost:8000
+      DB_CONNECTION: pgsql
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_DATABASE: pedidos
+      DB_USERNAME: laravel
+      DB_PASSWORD: secret
+    ports:
+      - "8000:8000"
+      - "5173:5173"
+    volumes:
+      - ./:/var/www/html
+
+  # Interface web do PostgreSQL, já com o servidor "Pedidos (Docker)" cadastrado.
+  pgadmin:
+    image: dpage/pgadmin4
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: admin
+      PGADMIN_CONFIG_SERVER_MODE: "False"
+      PGADMIN_CONFIG_MASTER_PASSWORD_REQUIRED: "False"
+    # Gera o pgpass (precisa de chmod 600) para conectar sem pedir senha.
+    entrypoint: >
+      /bin/sh -c "printf 'postgres:5432:*:laravel:secret\n' > /tmp/pgpass
+      && chmod 600 /tmp/pgpass
+      && exec /entrypoint.sh"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+      - ./docker/pgadmin/servers.json:/pgadmin4/servers.json:ro
+
+  # Painel para gerenciar containers, imagens, volumes e redes.
+  portainer:
+    image: portainer/portainer-ce:lts
+    restart: unless-stopped
+    ports:
+      - "9000:9000"
+      - "9443:9443"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - portainer_data:/data
+
+volumes:
+  pgdata:
+  pgadmin_data:
+  portainer_data:
