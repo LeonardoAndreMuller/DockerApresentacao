@@ -1,32 +1,40 @@
-# Imagem de desenvolvimento do app: PHP 8.5 (Laravel) + Node (Vite com HMR).
+# Imagem de desenvolvimento do app: Apache + PHP 8.5 (mod_php) no mesmo container.
 # O código NÃO é copiado para a imagem: ele entra por bind mount no compose.yaml,
 # então qualquer alteração no host aparece na hora dentro do container.
-FROM php:8.5-cli
+FROM php:8.5-apache
+
+ARG UID=1000
+ARG GID=1000
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends git unzip libpq-dev libzip-dev \
-    && docker-php-ext-install pdo_pgsql pgsql zip pcntl \
+    && docker-php-ext-install pdo_pgsql pgsql zip \
     && rm -rf /var/lib/apt/lists/*
 
-# Composer e Node vêm de imagens oficiais (multi-stage copy).
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-COPY --from=node:24-slim /usr/local/bin/node /usr/local/bin/node
-COPY --from=node:24-slim /usr/local/lib/node_modules /usr/local/lib/node_modules
-RUN ln -s /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm \
-    && ln -s /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx
+
+# Apache servindo a pasta public/ do Laravel, com mod_rewrite para as rotas.
+COPY docker/app/vhost.conf /etc/apache2/sites-available/000-default.conf
+RUN a2enmod rewrite \
+    && echo "ServerName localhost" > /etc/apache2/conf-available/servername.conf \
+    && a2enconf servername
+
+# Configuração do PHP para desenvolvimento (OPcache revalidando a cada requisição).
+COPY docker/app/php.ini /usr/local/etc/php/conf.d/zz-dev.ini
+
+# O Apache roda como www-data; damos a ele o mesmo UID/GID do usuário do host
+# para conseguir gravar em storage/ no volume montado (e os arquivos continuarem seus).
+RUN groupmod -o -g ${GID} www-data && usermod -o -u ${UID} -g ${GID} www-data
 
 COPY docker/app/entrypoint.sh /usr/local/bin/entrypoint
 RUN chmod +x /usr/local/bin/entrypoint
 
-# O container roda com o UID do host; HOME gravável para caches do composer/npm.
+# HOME gravável para o cache do composer.
 ENV HOME=/tmp
 
 WORKDIR /var/www/html
 
-EXPOSE 8000 5173
+EXPOSE 80
 
 ENTRYPOINT ["entrypoint"]
-# Servidor embutido do PHP com o router do Laravel (o mesmo usado pelo `artisan serve`).
-# Usamos `php -S` direto porque o `artisan serve` descarta as variáveis definidas no .env,
-# o que faria o DB_CONNECTION do compose ser ignorado.
-CMD ["npx", "concurrently", "-k", "-n", "server,vite", "-c", "green,gray", "cd public && php -S 0.0.0.0:8000 ../vendor/laravel/framework/src/Illuminate/Foundation/resources/server.php", "npm run dev"]
+CMD ["apache2-foreground"]

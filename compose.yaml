@@ -19,18 +19,20 @@ services:
       timeout: 5s
       retries: 10
 
-  # Aplicação Laravel (php artisan serve + Vite).
+  # Aplicação Laravel servida pelo Apache (php:8.5-apache).
   # O código do host é montado em /var/www/html: editou, refletiu.
   app:
-    build: .
+    build:
+      context: .
+      args:
+        UID: ${UID:-1000}
+        GID: ${GID:-1000}
     image: pedidos-app:dev
     restart: unless-stopped
-    user: "${UID:-1000}:${GID:-1000}"
     depends_on:
       postgres:
         condition: service_healthy
     environment:
-      DOCKER: "true"
       APP_URL: http://localhost:8000
       DB_CONNECTION: pgsql
       DB_HOST: postgres
@@ -39,7 +41,21 @@ services:
       DB_USERNAME: laravel
       DB_PASSWORD: secret
     ports:
-      - "8000:8000"
+      - "8000:80"
+    volumes:
+      - ./:/var/www/html
+
+  # Servidor de desenvolvimento do Vite (CSS/JS com hot reload no navegador).
+  vite:
+    image: node:24-slim
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    working_dir: /var/www/html
+    environment:
+      DOCKER: "true"
+      HOME: /tmp
+    command: sh -c "[ -d node_modules ] || npm install; npm run dev"
+    ports:
       - "5173:5173"
     volumes:
       - ./:/var/www/html
